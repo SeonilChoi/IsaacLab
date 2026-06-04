@@ -177,6 +177,7 @@ class AntObservationsCfg(PresetCfg):
     default: ObservationsCfg = ObservationsCfg()
     physx: ObservationsCfg = ObservationsCfg()
     newton: _AntNewtonObservationsCfg = _AntNewtonObservationsCfg()
+    kamino: _AntNewtonObservationsCfg = _AntNewtonObservationsCfg()
 
 
 @configclass

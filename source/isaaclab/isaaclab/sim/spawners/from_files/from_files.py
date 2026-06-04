@@ -5,11 +5,17 @@
 
 from __future__ import annotations
 
-import fcntl
+from contextlib import contextmanager
 import logging
 import os
 import tempfile
+import time
 from typing import TYPE_CHECKING
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 # deformables only supported on PhysX backend
 from isaaclab_physx.sim import schemas as schemas_physx
@@ -39,6 +45,41 @@ if TYPE_CHECKING:
 
 # import logger
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _usd_spawn_file_lock(enabled: bool):
+    """Serialize USD spawning across local processes when requested."""
+    if not enabled:
+        yield
+        return
+
+    lock_path = os.path.join(tempfile.gettempdir(), "isaaclab_usd_spawn.lock")
+    lock_fd = open(lock_path, "a+")  # noqa: SIM115
+    try:
+        if os.name == "nt":
+            lock_fd.seek(0)
+            lock_fd.write("0")
+            lock_fd.flush()
+            lock_fd.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(lock_fd.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.1)
+        else:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            if os.name == "nt":
+                lock_fd.seek(0)
+                msvcrt.locking(lock_fd.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        finally:
+            lock_fd.close()
 
 
 @clone
@@ -315,11 +356,7 @@ def _spawn_from_usd_file(
     if file_status == 0:
         raise FileNotFoundError(f"USD file not found at path: '{usd_path}'.")
 
-    if _world_size > 1:
-        lock_path = os.path.join(tempfile.gettempdir(), "isaaclab_usd_spawn.lock")
-        lock_fd = open(lock_path, "w")  # noqa: SIM115
-        fcntl.flock(lock_fd, fcntl.LOCK_EX)
-    try:
+    with _usd_spawn_file_lock(_world_size > 1):
         if file_status == 2:
             usd_path = retrieve_file_path(usd_path, force_download=False)
         stage = get_current_stage()
@@ -334,10 +371,6 @@ def _spawn_from_usd_file(
             )
         else:
             logger.warning(f"A prim already exists at prim path: '{prim_path}'.")
-    finally:
-        if _world_size > 1:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            lock_fd.close()
 
     # modify variants
     if hasattr(cfg, "variants") and cfg.variants is not None:

@@ -56,6 +56,61 @@ detailed tutorials and step-by-step guides. Follow these links to learn more abo
 - [Tutorials](https://isaac-sim.github.io/IsaacLab/main/source/tutorials/index.html)
 - [Available environments](https://isaac-sim.github.io/IsaacLab/main/source/overview/environments.html)
 
+### Local Newton/Kamino Run Commands
+
+Run the following commands from the Isaac Lab repository root:
+
+```powershell
+cd C:\isaaclab_newton\IsaacLab
+```
+
+Use `--viz` to choose the viewer:
+
+- `kit`: Isaac Sim Kit GUI
+- `newton`: Newton native OpenGL viewer
+- `viser`: Viser web viewer at `http://localhost:8080`
+
+Cartpole smoke-test commands:
+
+```powershell
+# PhysX + Isaac Sim Kit GUI
+python scripts\environments\zero_agent.py --task Isaac-Cartpole-Direct-v0 --num_envs 1 --viz kit env.sim.physics=physx
+
+# Newton/MJWarp + Isaac Sim Kit GUI
+python scripts\environments\zero_agent.py --task Isaac-Cartpole-Direct-v0 --num_envs 1 --viz kit env.sim.physics=newton
+
+# Kamino + Isaac Sim Kit GUI
+python scripts\environments\zero_agent.py --task Isaac-Cartpole-Direct-v0 --num_envs 1 --viz kit env.sim.physics=kamino
+
+# Kamino + Newton native viewer
+python scripts\environments\zero_agent.py --task Isaac-Cartpole-Direct-v0 --num_envs 1 --viz newton env.sim.physics=kamino
+
+# Kamino + Viser web viewer
+python scripts\environments\zero_agent.py --task Isaac-Cartpole-Direct-v0 --num_envs 1 --viz viser env.sim.physics=kamino
+```
+
+Ant SKRL training/viewer commands:
+
+```powershell
+# PhysX + Viser
+python scripts\reinforcement_learning\skrl\train.py --task=Isaac-Ant-v0 --num_envs 1 --viz viser env.sim.physics=physx env.observations=physx
+
+# Newton/MJWarp + Viser
+python scripts\reinforcement_learning\skrl\train.py --task=Isaac-Ant-v0 --num_envs 1 --viz viser env.sim.physics=newton env.observations=newton
+
+# Kamino + Viser
+python scripts\reinforcement_learning\skrl\train.py --task=Isaac-Ant-v0 --num_envs 1 --viz viser env.sim.physics=kamino env.observations=kamino
+
+# Kamino + Newton native viewer
+python scripts\reinforcement_learning\skrl\train.py --task=Isaac-Ant-v0 --num_envs 1 --viz newton env.sim.physics=kamino env.observations=kamino
+
+# Kamino + Isaac Sim Kit GUI
+python scripts\reinforcement_learning\skrl\train.py --task=Isaac-Ant-v0 --num_envs 1 --viz kit env.sim.physics=kamino env.observations=kamino
+```
+
+For Ant, always set both `env.sim.physics=...` and `env.observations=...` when using Newton or Kamino. This avoids
+PhysX-only wrench observations that are not implemented in Newton.
+
 ## Performance Dashboard
 
 We continuously benchmark Isaac Lab across different physics backends, renderers, and data types.
